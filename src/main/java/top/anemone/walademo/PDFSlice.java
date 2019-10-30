@@ -83,6 +83,9 @@ public class PDFSlice {
    * -srcCallee [method name] -dd [data dependence options] -cd [control dependence options] -dir
    * [forward|backward]
    *
+   * e.g., PDFSlice -appJar example_jar/wala-target-1.0-SNAPSHOT.jar
+   *                -mainClass Ltop/anemone/walatarget/Main -srcCaller main -srcCallee sink
+   *
    * <ul>
    *   <li>"jar file name" should be something like "c:/temp/testdata/java_cup.jar"
    *   <li>"main class" should beshould be something like "c:/temp/testdata/java_cup.jar"
@@ -148,11 +151,13 @@ public class PDFSlice {
       ControlDependenceOptions cOptions)
       throws IllegalArgumentException, CancelException, IOException {
     try {
+      long t1=System.currentTimeMillis();
       // create an analysis scope representing the appJar as a J2SE application
       AnalysisScope scope =
           AnalysisScopeReader.makeJavaBinaryAnalysisScope(
               appJar, (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
-
+      long t2=System.currentTimeMillis();
+      System.out.println("t2-t1: "+(t2-t1));
       // build a class hierarchy, call graph, and system dependence graph
       ClassHierarchy cha = ClassHierarchyFactory.make(scope);
       Iterable<Entrypoint> entrypoints =
@@ -161,15 +166,20 @@ public class PDFSlice {
       CallGraphBuilder<InstanceKey> builder =
           Util.makeVanillaZeroOneCFABuilder(
               Language.JAVA, options, new AnalysisCacheImpl(), cha, scope);
+
       // CallGraphBuilder builder = Util.makeZeroOneCFABuilder(options, new
       // AnalysisCache(), cha, scope);
       CallGraph cg = builder.makeCallGraph(options, null);
       SDG<InstanceKey> sdg = new SDG<>(cg, builder.getPointerAnalysis(), dOptions, cOptions);
+      long t4=System.currentTimeMillis();
+      System.out.println("t4-t2: "+(t4-t2));
 
       // find the call statement of interest
       CGNode callerNode = SlicerTest.findMethod(cg, srcCaller);
       Statement s = SlicerTest.findCallTo(callerNode, srcCallee);
       System.err.println("Statement: " + s);
+      long t5=System.currentTimeMillis();
+      System.out.println("t5-t4: "+(t5-t4));
 
       // compute the slice as a collection of statements
       Collection<Statement> slice = null;
@@ -184,6 +194,8 @@ public class PDFSlice {
         slice = Slicer.computeForwardSlice(s, cg, pointerAnalysis, dOptions, cOptions);
       }
       SlicerTest.dumpSlice(slice);
+      long t6=System.currentTimeMillis();
+      System.out.println("t6-t5: "+(t6-t5));
 
       // create a view of the SDG restricted to nodes in the slice
       Graph<Statement> g = pruneSDG(sdg, slice);

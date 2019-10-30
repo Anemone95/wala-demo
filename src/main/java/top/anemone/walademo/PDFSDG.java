@@ -43,6 +43,8 @@ import com.ibm.wala.util.io.FileProvider;
 import com.ibm.wala.viz.DotUtil;
 import com.ibm.wala.viz.NodeDecorator;
 import com.ibm.wala.viz.PDFViewUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import top.anemone.walademo.callGraph.CallGraphTestUtil;
 import top.anemone.walademo.properties.WalaExamplesProperties;
 
@@ -61,6 +63,7 @@ import java.util.function.Predicate;
 public class PDFSDG {
 
   private static final String PDF_FILE = "sdg.pdf";
+  private static final Logger LOG = LoggerFactory.getLogger(PDFSDG.class);
 
   /**
    * Usage: GVSDG -appJar [jar file name] -mainclass [main class]
@@ -72,11 +75,11 @@ public class PDFSDG {
     run(args);
   }
 
-  public static Process run(String[] args)
+  public static void run(String[] args)
       throws IllegalArgumentException, CancelException, IOException {
     Properties p = CommandLine.parse(args);
     validateCommandLine(p);
-    return run(
+    run(
         p.getProperty("appJar"),
         p.getProperty("mainClass"),
         getDataDependenceOptions(p),
@@ -90,7 +93,7 @@ public class PDFSDG {
         return result;
       }
     }
-    Assertions.UNREACHABLE("unknown data datapendence option: " + d);
+    Assertions.UNREACHABLE("unknown data data dependence option: " + d);
     return null;
   }
 
@@ -101,18 +104,19 @@ public class PDFSDG {
         return result;
       }
     }
-    Assertions.UNREACHABLE("unknown control datapendence option: " + d);
+    Assertions.UNREACHABLE("unknown control data dependence option: " + d);
     return null;
   }
 
   /** @param appJar something like "c:/temp/testdata/java_cup.jar" */
-  public static Process run(
+  public static void run(
       String appJar,
       String mainClass,
       DataDependenceOptions dOptions,
       ControlDependenceOptions cOptions)
       throws IllegalArgumentException, CancelException, IOException {
     try {
+      LOG.info("Adding scope...");
       AnalysisScope scope =
           AnalysisScopeReader.makeJavaBinaryAnalysisScope(
               appJar, (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
@@ -124,19 +128,26 @@ public class PDFSDG {
           Util.makeMainEntrypoints(scope, cha, mainClass);
       AnalysisOptions options = CallGraphTestUtil.makeAnalysisOptions(scope, entrypoints);
 
+      LOG.info("Building Call Graph...");
       CallGraphBuilder<InstanceKey> builder =
           Util.makeZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), cha, scope);
       CallGraph cg = builder.makeCallGraph(options, null);
+
+      LOG.info("Building SDG...");
       final PointerAnalysis<InstanceKey> pointerAnalysis = builder.getPointerAnalysis();
       SDG<?> sdg = new SDG<>(cg, pointerAnalysis, dOptions, cOptions);
-      try {
-        GraphIntegrity.check(sdg);
-      } catch (UnsoundGraphException e1) {
-        e1.printStackTrace();
-        Assertions.UNREACHABLE();
-      }
-      System.err.println(sdg);
+//      try {
+//        GraphIntegrity.check(sdg);
+//      } catch (UnsoundGraphException e1) {
+//        e1.printStackTrace();
+//        Assertions.UNREACHABLE();
+//      }
+//      System.out.println(sdg);
 
+      LOG.info("Prune SDG...");
+      Graph<Statement> g = pruneSDG(sdg);
+
+      LOG.info("Writing pdf...");
       Properties p = null;
       try {
         p = WalaExamplesProperties.loadProperties();
@@ -148,16 +159,13 @@ public class PDFSDG {
       String psFile = p.getProperty(WalaProperties.OUTPUT_DIR) + File.separatorChar + PDF_FILE;
 
       String dotExe = p.getProperty(WalaExamplesProperties.DOT_EXE);
-      Graph<Statement> g = pruneSDG(sdg);
       DotUtil.dotify(g, makeNodeDecorator(), PDFTypeHierarchy.DOT_FILE, psFile, dotExe);
 
-      String gvExe = p.getProperty(WalaExamplesProperties.PDFVIEW_EXE);
-      return PDFViewUtil.launchPDFView(psFile, gvExe);
+      System.out.println("File saved in "+psFile);
 
     } catch (WalaException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
-      return null;
     }
   }
 

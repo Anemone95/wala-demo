@@ -94,16 +94,15 @@ public class PDFCallGraph {
    * Usage: args = "-appJar [jar file name] {-exclusionFile [exclusionFileName]}" The "jar file
    * name" should be something like "c:/temp/testdata/java_cup.jar"
    */
-  public static Process run(String[] args) throws IllegalArgumentException, CancelException {
+  public static void run(String[] args) throws IllegalArgumentException, CancelException {
     Properties p = CommandLine.parse(args);
     validateCommandLine(p);
-    return run(
-        p.getProperty("appJar"),
+    run(p.getProperty("appJar"),
         p.getProperty("exclusionFile", CallGraphTestUtil.REGRESSION_EXCLUSIONS));
   }
 
   /** @param appJar something like "c:/temp/testdata/java_cup.jar" */
-  public static Process run(String appJar, String exclusionFile)
+  public static void run(String appJar, String exclusionFile)
       throws IllegalArgumentException, CancelException {
     try {
       Graph<CGNode> g = buildPrunedCallGraph(appJar, (new FileProvider()).getFile(exclusionFile));
@@ -121,12 +120,11 @@ public class PDFCallGraph {
       String dotExe = p.getProperty(WalaExamplesProperties.DOT_EXE);
       DotUtil.dotify(g, null, PDFTypeHierarchy.DOT_FILE, pdfFile, dotExe);
 
-      String gvExe = p.getProperty(WalaExamplesProperties.PDFVIEW_EXE);
-      return PDFViewUtil.launchPDFView(pdfFile, gvExe);
+      System.out.println("File saved in "+pdfFile);
 
     } catch (WalaException | IOException e) {
       e.printStackTrace();
-      return null;
+      return;
     }
   }
 
