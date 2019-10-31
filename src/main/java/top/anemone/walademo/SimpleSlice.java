@@ -14,10 +14,13 @@ import com.ibm.wala.ssa.SSAInstruction;
 import com.ibm.wala.types.Descriptor;
 import com.ibm.wala.util.CancelException;
 import com.ibm.wala.util.WalaException;
+import com.ibm.wala.util.collections.Iterator2Iterable;
 import com.ibm.wala.util.config.AnalysisScopeReader;
 import com.ibm.wala.util.debug.Assertions;
 import com.ibm.wala.util.io.FileProvider;
 import com.ibm.wala.util.strings.Atom;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import top.anemone.walademo.callGraph.CallGraphTestUtil;
 
 import java.io.IOException;
@@ -25,16 +28,30 @@ import java.util.Collection;
 import java.util.Iterator;
 
 public class SimpleSlice {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PDFSDG.class);
+
     public static void main(String[] args) throws CancelException, WalaException, IOException {
-        doSlicing("./example_jar/wala-target-1.0-SNAPSHOT.jar");
+
+        Slicer.DataDependenceOptions dOptions=Slicer.DataDependenceOptions.NO_BASE_NO_HEAP;
+        Slicer.ControlDependenceOptions cOptions=Slicer.ControlDependenceOptions.FULL;
+        doSlicing("./example_jar/wala-target-1.0-SNAPSHOT.jar",
+                "top.anemone.walatarget.Main#sink",
+                "println",
+                dOptions,
+                cOptions);
     }
-    public static void doSlicing(String appJar) throws WalaException, CancelException, IOException {
+    public static void doSlicing(String appJar, String caller, String callee,
+                                 Slicer.DataDependenceOptions dOptions,
+                                 Slicer.ControlDependenceOptions cOptions)
+            throws WalaException, CancelException, IOException {
         // create an analysis scope representing the appJar as a J2SE application
         AnalysisScope scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope(appJar,
                 (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
         ClassHierarchy cha = ClassHierarchyFactory.make(scope);
 
-        Iterable<Entrypoint> entrypoints = com.ibm.wala.ipa.callgraph.impl.Util.makeMainEntrypoints(scope, cha);
+        String source="Ltop/anemone/walatarget/Main"; //entrypoint
+        Iterable<Entrypoint> entrypoints = com.ibm.wala.ipa.callgraph.impl.Util.makeMainEntrypoints(scope, cha, source);
         AnalysisOptions options = new AnalysisOptions(scope, entrypoints);
 
         // build the call graph
@@ -42,53 +59,42 @@ public class SimpleSlice {
         CallGraph cg = cgb.makeCallGraph(options, null);
         PointerAnalysis pa = cgb.getPointerAnalysis();
 
-        // find source method
-        String[] sourceMethod="top.anemone.walatarget.Main#main".split("#");
-        String clazz=sourceMethod[0].replace('.','/');
-        Atom method=Atom.findOrCreateUnicodeAtom(sourceMethod[1]);
-        CGNode sourceNode=null;
-        for (Iterator<? extends CGNode> it = cg.getSuccNodes(cg.getFakeRootNode()); it.hasNext(); ) {
-            CGNode n = it.next();
+        // find caller method
+        String[] callerMethod=caller.split("#");
+        String clazz=callerMethod[0].replace('.','/');
+        Atom method=Atom.findOrCreateUnicodeAtom(callerMethod[1]);
+        CGNode callerNode=null;
+        for(CGNode n: cg){
             if (n.getMethod().getReference().getDeclaringClass().getName().toString().endsWith(clazz) && n.getMethod().getName().equals(method)) {
-                sourceNode=n;
+                callerNode=n;
                 break;
             }
         }
-        if(sourceNode==null){
+        if(callerNode==null){
             Assertions.UNREACHABLE("failed to find method");
         }
 
-        // find seed statement TODO 不是很懂，为什么不能跨函数切片?
-        Statement statement = findCallTo(sourceNode, "println");
-
-        Collection<Statement> slice;
-
-        // context-sensitive traditional slice
-        slice = Slicer.computeBackwardSlice(statement, cg, pa);
-        dumpSlice(slice);
-    }
-
-
-    public static Statement findCallTo(CGNode n, String methodName) {
-        IR ir = n.getIR();
-        for (Iterator<SSAInstruction> it = ir.iterateAllInstructions(); it.hasNext(); ) {
-            SSAInstruction s = it.next();
+        // find callee statement
+        Statement calleeStmt=null;
+        IR callerIR = callerNode.getIR();
+        for (SSAInstruction s: Iterator2Iterable.make(callerIR.iterateAllInstructions())){
             if (s instanceof com.ibm.wala.ssa.SSAAbstractInvokeInstruction) {
                 com.ibm.wala.ssa.SSAAbstractInvokeInstruction call = (com.ibm.wala.ssa.SSAAbstractInvokeInstruction) s;
-                if (call.getCallSite().getDeclaredTarget().getName().toString().equals(methodName)) {
-                    com.ibm.wala.util.intset.IntSet indices = ir.getCallInstructionIndices(call.getCallSite());
+                if (call.getCallSite().getDeclaredTarget().getName().toString().equals(callee)) {
+                    com.ibm.wala.util.intset.IntSet indices = callerIR.getCallInstructionIndices(call.getCallSite());
                     com.ibm.wala.util.debug.Assertions.productionAssertion(indices.size() == 1, "expected 1 but got " + indices.size());
-                    return new com.ibm.wala.ipa.slicer.NormalStatement(n, indices.intIterator().next());
+                    calleeStmt=new com.ibm.wala.ipa.slicer.NormalStatement(callerNode, indices.intIterator().next());
                 }
             }
         }
-        Assertions.UNREACHABLE("failed to find call to " + methodName + " in " + n);
-        return null;
-    }
+        if(calleeStmt==null){
+            Assertions.UNREACHABLE("failed to find call to " + callee + " in " + callerNode);
+        }
 
-    public static void dumpSlice(Collection<Statement> slice) {
+        // context-sensitive traditional slice
+        Collection<Statement> slice = Slicer.computeBackwardSlice(calleeStmt, cg, pa, dOptions, cOptions);
         for (Statement s : slice) {
-            System.err.println(s);
+            System.out.println(s);
         }
     }
 }

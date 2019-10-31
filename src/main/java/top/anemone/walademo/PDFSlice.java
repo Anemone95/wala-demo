@@ -105,7 +105,7 @@ public class PDFSlice {
   }
 
   /** see {@link #main(String[])} for command-line arguments */
-  public static Process run(String[] args)
+  public static void run(String[] args)
       throws IllegalArgumentException, CancelException, IOException {
     // parse the command-line into a Properties object
     Properties p = CommandLine.parse(args);
@@ -113,7 +113,7 @@ public class PDFSlice {
     validateCommandLine(p);
 
     // run the applications
-    return run(
+    run(
         p.getProperty("appJar"),
         p.getProperty("mainClass"),
         p.getProperty("srcCaller"),
@@ -141,7 +141,7 @@ public class PDFSlice {
    * @param cOptions options controlling control dependence
    * @return a Process running the PDF viewer to visualize the dot'ted representation of the slice
    */
-  public static Process run(
+  public static void run(
       String appJar,
       String mainClass,
       String srcCaller,
@@ -200,7 +200,7 @@ public class PDFSlice {
       // create a view of the SDG restricted to nodes in the slice
       Graph<Statement> g = pruneSDG(sdg, slice);
 
-      sanityCheck(slice, g);
+//      sanityCheck(slice, g);
 
       // load Properties from standard WALA and the WALA examples project
       Properties p = null;
@@ -216,14 +216,12 @@ public class PDFSlice {
       String dotExe = p.getProperty(WalaExamplesProperties.DOT_EXE);
       DotUtil.dotify(g, makeNodeDecorator(), PDFTypeHierarchy.DOT_FILE, psFile, dotExe);
 
-      // fire off the PDF viewer
-      String gvExe = p.getProperty(WalaExamplesProperties.PDFVIEW_EXE);
-      return PDFViewUtil.launchPDFView(psFile, gvExe);
+      System.out.println("File saved in "+psFile);
 
     } catch (WalaException e) {
       // something bad happened.
       e.printStackTrace();
-      return null;
+      return;
     }
   }
 
