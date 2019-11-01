@@ -171,7 +171,7 @@ in method:sink, at line:15, inst:invokevirtual < Application, Ljava/io/PrintStre
 
 ```java
 public static void sink(String cmd) {
-    System.out.println(cmd); //line 17 in real
+    System.out.println(cmd); //line 15 in real
     cmd=cmd+1;
     System.out.println(cmd); //line 17 in real
 }
@@ -210,4 +210,35 @@ for (SSAInstruction s : Iterator2Iterable.make(callerIR.iterateAllInstructions()
 
 ## Challenge
 * 切片使用了类似先序遍历，顺序有点不一致(分段切片？)
+
 * 只有操作码，没有实际操作数
+
+* 将污点分析结果匹配到切片是会包含无意义分支，例如
+
+  ```mermaid
+  graph TB
+     source ==> if
+     if --y--> clean
+     if ==n==> unclean
+     clean --> sink
+     unclean ==>sink
+  ```
+
+  污点延粗线传播，但是切片结果会包含clean部分：
+
+  ```java
+  in method:main, at line:6, inst:4 = arrayload 1[3]
+  in method:main, at line:6, inst:7 = invokevirtual < Application, Ljava/lang/String, equals(Ljava/lang/Object;)Z > 4,5 @5 exception:6
+  in method:main, at line:6, inst:conditional branch(eq, to iindex=13) 7,8
+  in method:main, at line:6, inst:13 = arrayload 1[9]
+  in method:main, at line:6, inst:15 = invokestatic < Application, Ltop/anemone/walaTarget/Branch, clean(Ljava/lang/String;)Ljava/lang/String; > 13 @14 exception:14
+  in method:main, at line:7, inst:10 = arrayload 1[9]
+  in method:main, at line:7, inst:12 = invokestatic < Application, Ltop/anemone/walaTarget/Branch, unclean(Ljava/lang/String;)Ljava/lang/String; > 10 @24 exception:11
+  in method:main, at line:7, inst:invokestatic < Application, Ltop/anemone/walaTarget/Branch, sqlselect(Ljava/lang/String;)V > 16 @29 exception:17
+  in method:clean, at line:15, inst:6 = invokevirtual < Application, Ljava/lang/String, replace(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String; > 1,3,4 @5 exception:5
+  in method:clean, at line:15, inst:return 6
+  in method:unclean, at line:18, inst:return 1
+  ```
+
+  
+
