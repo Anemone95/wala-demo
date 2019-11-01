@@ -1,5 +1,4 @@
-target/*
+target
 .idea
 *.jar
-walademo.iml
 temp.dt

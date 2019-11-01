@@ -204,7 +204,10 @@ for (SSAInstruction s : Iterator2Iterable.make(callerIR.iterateAllInstructions()
 
 ## 分析切片结果
 
-切片返回Statement，其为一个抽象类，有各种实现，其本身有node和kind属性
+切片返回Statement，其为一个抽象类，有各种实现，其本身有node和kind属性，`top.anemone.walaDemo.utils.StmtFormater`写着一些打印这些属性的方法。
 
 ![Statement](README/Statement.png)
 
+## Challenge
+* 切片使用了类似先序遍历，顺序有点不一致(分段切片？)
+* 只有操作码，没有实际操作数
