@@ -151,7 +151,7 @@ for (Statement s : graph) {
 }
 ```
 
-程序输出类似如下：
+程序输出类似如下(运行top.anemone.walaDemo.SimpleSlice)：
 
 ```java
 in method:main, at line:7, inst:4 = invokestatic < Application, Ltop/anemone/walatarget/Main, source()Ljava/lang/String; > @0 exception:3
