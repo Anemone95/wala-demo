@@ -42,7 +42,7 @@ import top.anemone.walaDemo.utils.StmtFormater;
 
 public class SimpleSlice {
 
-    private static final Logger LOG = LoggerFactory.getLogger(PDFSDG.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SimpleSlice.class);
 
     public static void main(String[] args) throws CancelException, WalaException, IOException, InvalidClassFileException {
 

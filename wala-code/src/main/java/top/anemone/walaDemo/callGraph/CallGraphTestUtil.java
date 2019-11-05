@@ -38,7 +38,7 @@ public class CallGraphTestUtil {
     return options;
   }
 
-  public static String REGRESSION_EXCLUSIONS = "wala-code/src/main/resources/Java60RegressionExclusions.txt";
+  public static String REGRESSION_EXCLUSIONS = "Java60RegressionExclusions.txt";
 
   public static String REGRESSION_EXCLUSIONS_FOR_GUI = "Java60RegressionExclusionsForGUI.txt";
 
