@@ -48,7 +48,7 @@ public class CFGWithoutDependency {
 
     public static void main(String[] args) throws CancelException, WalaException, IOException, InvalidClassFileException {
         // the jar can be built from https://github.com/Anemone95/java-sec-code
-        String appJar="example_jar/java-sec-code-1.0.0.jar.original.jar";
+        String appJar="wala-target/target/wala-target-1.0-SNAPSHOT.jar";
         LOG.info("Create an analysis scope representing the appJar as a J2SE application");
         AnalysisScope scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope(appJar,
                 (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
@@ -57,9 +57,9 @@ public class CFGWithoutDependency {
         ClassHierarchy cha = ClassHierarchyFactory.makeWithPhantom(scope);
 
         LOG.info("Set entrypoints");
-        String[] srcCls = {"Lorg/joychou/security/LoginSuccessHandler"};
-        String[] srcFuncs= {"onAuthenticationSuccess"};
-        String[] srcRefs = {"((Ljavax/servlet/http/HttpServletRequest;Ljavax/servlet/http/HttpServletResponse;Lorg/springframework/security/core/Authentication;)V"};
+        String[] srcCls = {"Ltop/anemone/walaTarget/NoDependencyDemo"};
+        String[] srcFuncs= {"main"};
+        String[] srcRefs = {"([Ljava/lang/String;)V"};
         Iterable<Entrypoint> entrypoints = ()-> new Iterator<Entrypoint>() {
             private int index = 0;
             @Override
@@ -91,9 +91,9 @@ public class CFGWithoutDependency {
         PointerAnalysis pa = cgb.getPointerAnalysis();
         LOG.info("Find caller method");
 
-        String caller="org.joychou.security.LoginSuccessHandler#onAuthenticationSuccess";
-        String callee="write";
-        int lineNumber=44;
+        String caller="top.anemone.walaTarget.NoDependencyDemo#printJson";
+        String callee="println";
+        int lineNumber=18;
         String[] callerMethod = caller.split("#");
         String clazz = callerMethod[0].replace('.', '/');
         Atom method = Atom.findOrCreateUnicodeAtom(callerMethod[1]);
