@@ -15,12 +15,12 @@
         <dependency>
             <groupId>com.ibm.wala</groupId>
             <artifactId>com.ibm.wala.core</artifactId>
-            <version>1.5.3</version>
+            <version>1.5.4</version>
         </dependency>
         <dependency>
             <groupId>com.ibm.wala</groupId>
             <artifactId>com.ibm.wala.cast</artifactId>
-            <version>1.5.3</version>
+            <version>1.5.4</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>

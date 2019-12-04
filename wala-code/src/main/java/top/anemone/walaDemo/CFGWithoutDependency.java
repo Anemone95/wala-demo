@@ -1,6 +1,5 @@
 package top.anemone.walaDemo;
 
-
 import com.ibm.wala.classLoader.Language;
 import com.ibm.wala.ipa.callgraph.*;
 import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
@@ -39,50 +38,38 @@ import java.util.function.Predicate;
 
 import top.anemone.walaDemo.callGraph.CallGraphTestUtil;
 import top.anemone.walaDemo.utils.StmtFormater;
+import top.anemone.walaDemo.wala.AppEntryPoint;
+
 
 @SuppressWarnings("Duplicates")
-public class SimpleSlice {
+public class CFGWithoutDependency {
 
-    private static final Logger LOG = LoggerFactory.getLogger(SimpleSlice.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CFGWithoutDependency.class);
 
     public static void main(String[] args) throws CancelException, WalaException, IOException, InvalidClassFileException {
-
-        Slicer.DataDependenceOptions dOptions = Slicer.DataDependenceOptions.NO_BASE_NO_HEAP;
-        Slicer.ControlDependenceOptions cOptions = Slicer.ControlDependenceOptions.FULL;
-        doSlicing("wala-target/target/wala-target-1.0-SNAPSHOT.jar",
-                "top.anemone.walaTarget.Main#sink",
-                "println",
-                17,
-                dOptions,
-                cOptions);
-    }
-
-    public static void doSlicing(String appJar, String caller, String callee, int lineNumber,
-                                 Slicer.DataDependenceOptions dOptions,
-                                 Slicer.ControlDependenceOptions cOptions)
-            throws WalaException, CancelException, IOException, InvalidClassFileException {
+        // the jar can be built from https://github.com/Anemone95/java-sec-code
+        String appJar="example_jar/java-sec-code-1.0.0.jar.original.jar";
         LOG.info("Create an analysis scope representing the appJar as a J2SE application");
         AnalysisScope scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope(appJar,
                 (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
-        ClassHierarchy cha = ClassHierarchyFactory.make(scope);
+        // using make will not throw exception
+        // ClassHierarchy cha = ClassHierarchyFactory.make(scope);
+        ClassHierarchy cha = ClassHierarchyFactory.makeWithPhantom(scope);
 
         LOG.info("Set entrypoints");
-        String[] srcCls = {"Ltop/anemone/walaTarget/Main"};
-        String[] srcFuncs= {"main"};
-        String[] srcRefs = {"([Ljava/lang/String;)V"};
+        String[] srcCls = {"Lorg/joychou/security/LoginSuccessHandler"};
+        String[] srcFuncs= {"onAuthenticationSuccess"};
+        String[] srcRefs = {"((Ljavax/servlet/http/HttpServletRequest;Ljavax/servlet/http/HttpServletResponse;Lorg/springframework/security/core/Authentication;)V"};
         Iterable<Entrypoint> entrypoints = ()-> new Iterator<Entrypoint>() {
             private int index = 0;
-
             @Override
             public void remove() {
                 Assertions.UNREACHABLE();
             }
-
             @Override
             public boolean hasNext() {
                 return index < srcCls.length;
             }
-
             @Override
             public Entrypoint next() {
                 TypeReference T =
@@ -93,7 +80,7 @@ public class SimpleSlice {
                                 Atom.findOrCreateAsciiAtom(srcFuncs[index]),
                                 Descriptor.findOrCreateUTF8(srcRefs[index]));
                 index++;
-                return new DefaultEntrypoint(mainRef, cha);
+                return new AppEntryPoint(mainRef, cha);
             }
         };
         AnalysisOptions options = new AnalysisOptions(scope, entrypoints);
@@ -102,8 +89,11 @@ public class SimpleSlice {
         com.ibm.wala.ipa.callgraph.CallGraphBuilder cgb = Util.makeVanillaZeroOneCFABuilder(Language.JAVA, options, new AnalysisCacheImpl(), cha, scope, null, null);
         CallGraph cg = cgb.makeCallGraph(options, null);
         PointerAnalysis pa = cgb.getPointerAnalysis();
-
         LOG.info("Find caller method");
+
+        String caller="org.joychou.security.LoginSuccessHandler#onAuthenticationSuccess";
+        String callee="write";
+        int lineNumber=44;
         String[] callerMethod = caller.split("#");
         String clazz = callerMethod[0].replace('.', '/');
         Atom method = Atom.findOrCreateUnicodeAtom(callerMethod[1]);
@@ -144,6 +134,8 @@ public class SimpleSlice {
         }
 
         LOG.info("context-sensitive traditional slice (backward slice)");
+        Slicer.DataDependenceOptions dOptions = Slicer.DataDependenceOptions.NO_BASE_NO_HEAP;
+        Slicer.ControlDependenceOptions cOptions = Slicer.ControlDependenceOptions.FULL;
         Collection<Statement> slice = Slicer.computeBackwardSlice(calleeStmt, cg, pa, dOptions, cOptions);
 
         LOG.info("Pruning SDG");
