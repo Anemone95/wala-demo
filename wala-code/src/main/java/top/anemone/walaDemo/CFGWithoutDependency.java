@@ -53,8 +53,12 @@ public class CFGWithoutDependency {
         AnalysisScope scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope(appJar,
                 (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
         // using make will not throw exception
-        // ClassHierarchy cha = ClassHierarchyFactory.make(scope);
-        ClassHierarchy cha = ClassHierarchyFactory.makeWithPhantom(scope);
+//        ClassHierarchy cha = ClassHierarchyFactory.make(scope);
+        // makeWithPhantom was deprecated
+        // ClassHierarchy cha = ClassHierarchyFactory.makeWithPhantom(scope);
+
+        // Recommand makeWithRoot, see https://github.com/wala/WALA/issues/591 for more details
+        ClassHierarchy cha = ClassHierarchyFactory.makeWithRoot(scope);
 
         LOG.info("Set entrypoints");
         String[] srcCls = {"Ltop/anemone/walaTarget/NoDependencyDemo"};
@@ -93,7 +97,7 @@ public class CFGWithoutDependency {
 
         String caller="top.anemone.walaTarget.NoDependencyDemo#printJson";
         String callee="println";
-        int lineNumber=18;
+        int lineNumber=19;
         String[] callerMethod = caller.split("#");
         String clazz = callerMethod[0].replace('.', '/');
         Atom method = Atom.findOrCreateUnicodeAtom(callerMethod[1]);

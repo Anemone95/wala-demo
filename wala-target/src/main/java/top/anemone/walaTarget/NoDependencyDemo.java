@@ -15,6 +15,7 @@ public class NoDependencyDemo {
 
     public static void printJson(Object o, Gson gson) {
         String json = gson.toJson(o);
+        new DemoFactory().create(gson,null);
         System.out.println(json);
     }
 }
