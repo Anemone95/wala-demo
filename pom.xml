@@ -23,6 +23,7 @@
     <modules>
         <module>wala-code</module>
         <module>wala-target</module>
+        <module>wala-target-abstract</module>
     </modules>
 
 
