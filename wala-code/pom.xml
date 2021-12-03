@@ -11,7 +11,7 @@
     <packaging>jar</packaging>
     <artifactId>wala-code</artifactId>
     <properties>
-        <wala.version>1.5.5</wala.version>
+        <wala.version>1.5.7</wala.version>
     </properties>
 
     <dependencies>
@@ -44,6 +44,11 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
             <version>1.7.28</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant</artifactId>
+            <version>1.8.2</version>
         </dependency>
     </dependencies>
 

@@ -8,8 +8,9 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  */
-package top.anemone.walaDemo;
+package top.anemone.walaDemo.broken;
 
+import com.ibm.wala.cfg.cdg.ControlDependenceGraph;
 import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.ipa.callgraph.AnalysisCacheImpl;
 import com.ibm.wala.ipa.callgraph.AnalysisOptions;
@@ -20,6 +21,7 @@ import com.ibm.wala.ipa.cha.ClassHierarchy;
 import com.ibm.wala.ipa.cha.ClassHierarchyFactory;
 import com.ibm.wala.properties.WalaProperties;
 import com.ibm.wala.ssa.IR;
+import com.ibm.wala.ssa.ISSABasicBlock;
 import com.ibm.wala.ssa.SSAOptions;
 import com.ibm.wala.types.MethodReference;
 import com.ibm.wala.util.WalaException;
@@ -27,6 +29,7 @@ import com.ibm.wala.util.config.AnalysisScopeReader;
 import com.ibm.wala.util.debug.Assertions;
 import com.ibm.wala.util.io.FileProvider;
 import com.ibm.wala.util.strings.StringStuff;
+import com.ibm.wala.viz.DotUtil;
 import com.ibm.wala.viz.PDFViewUtil;
 import top.anemone.walaDemo.callGraph.CallGraphTestUtil;
 import top.anemone.walaDemo.properties.WalaExamplesProperties;
@@ -36,21 +39,25 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
- * This simple example application builds a WALA IR and fires off a PDF viewer to visualize a DOT
+ * This simple example application builds a WALA CDG and fires off ghostview to viz a DOT
  * representation.
+ *
+ * @author sfink
  */
-
 @SuppressWarnings("Duplicates")
-public class PDFWalaIR {
+public class PDFControlDependenceGraph {
 
-  public static final String PDF_FILE = "ir.pdf";
+  public static final boolean SANITIZE_CFG = false;
+
+  public static final String PDF_FILE = "cdg.pdf";
 
   /**
-   * Usage: PDFWalaIR -appJar [jar file name] -sig [method signature] The "jar file name" should be
-   * something like "c:/temp/testdata/java_cup.jar" The signature should be something like
-   * "java_cup.lexer.advance()V"
+   * Usage: GVControlDependenceGraph -appJar [jar file name] -sig [method signature] The "jar file
+   * name" should be something like "c:/temp/testdata/java_cup.jar" The signature should be
+   * something like "java_cup.lexer.advance()V"
    */
   public static void main(String[] args) throws IOException {
+
     run(args);
   }
 
@@ -73,37 +80,22 @@ public class PDFWalaIR {
       if (PDFCallGraph.isDirectory(appJar)) {
         appJar = PDFCallGraph.findJarFiles(new String[] {appJar});
       }
-
-      // Build an AnalysisScope which represents the set of classes to analyze.  In particular,
-      // we will analyze the contents of the appJar jar file and the Java standard libraries.
       AnalysisScope scope =
           AnalysisScopeReader.makeJavaBinaryAnalysisScope(
               appJar, (new FileProvider()).getFile(CallGraphTestUtil.REGRESSION_EXCLUSIONS));
 
-      // Build a class hierarchy representing all classes to analyze.  This step will read the class
-      // files and organize them into a tree.
       ClassHierarchy cha = ClassHierarchyFactory.make(scope);
 
-      // Create a name representing the method whose IR we will visualize
       MethodReference mr = StringStuff.makeMethodReference(methodSig);
 
-      // Resolve the method name into the IMethod, the canonical representation of the method
-      // information.
       IMethod m = cha.resolveMethod(mr);
       if (m == null) {
-        Assertions.UNREACHABLE("could not resolve " + mr);
+        System.err.println("could not resolve " + mr);
+        throw new RuntimeException();
       }
-
-      // Set up options which govern analysis choices.  In particular, we will use all Pi nodes when
-      // building the IR.
       AnalysisOptions options = new AnalysisOptions();
       options.getSSAOptions().setPiNodePolicy(SSAOptions.getAllBuiltInPiNodes());
-
-      // Create an object which caches IRs and related information, reconstructing them lazily on
-      // demand.
       IAnalysisCacheView cache = new AnalysisCacheImpl(options.getSSAOptions());
-
-      // Build the IR and cache it.
       IR ir = cache.getIR(m, Everywhere.EVERYWHERE);
 
       if (ir == null) {
@@ -111,6 +103,8 @@ public class PDFWalaIR {
       }
 
       System.err.println(ir.toString());
+      ControlDependenceGraph<ISSABasicBlock> cdg =
+          new ControlDependenceGraph<>(ir.getControlFlowGraph());
 
       Properties wp = null;
       try {
@@ -121,7 +115,9 @@ public class PDFWalaIR {
         Assertions.UNREACHABLE();
       }
       String psFile =
-          wp.getProperty(WalaProperties.OUTPUT_DIR) + File.separatorChar + PDFWalaIR.PDF_FILE;
+          wp.getProperty(WalaProperties.OUTPUT_DIR)
+              + File.separatorChar
+              + PDFControlDependenceGraph.PDF_FILE;
       String dotFile =
           wp.getProperty(WalaProperties.OUTPUT_DIR)
               + File.separatorChar
@@ -129,7 +125,9 @@ public class PDFWalaIR {
       String dotExe = wp.getProperty(WalaExamplesProperties.DOT_EXE);
       String gvExe = wp.getProperty(WalaExamplesProperties.PDFVIEW_EXE);
 
-      return PDFViewUtil.ghostviewIR(cha, ir, psFile, dotFile, dotExe, gvExe);
+      DotUtil.<ISSABasicBlock>dotify(cdg, PDFViewUtil.makeIRDecorator(ir), dotFile, psFile, dotExe);
+
+      return PDFViewUtil.launchPDFView(psFile, gvExe);
 
     } catch (WalaException e) {
       // TODO Auto-generated catch block
@@ -152,7 +150,7 @@ public class PDFWalaIR {
    *
    * @throws UnsupportedOperationException if command-line is malformed.
    */
-  public static void validateCommandLine(String[] args) {
+  static void validateCommandLine(String[] args) {
     if (args.length != 4) {
       throw new UnsupportedOperationException("must have at exactly 4 command-line arguments");
     }

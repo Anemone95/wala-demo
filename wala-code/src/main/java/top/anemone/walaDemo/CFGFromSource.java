@@ -51,7 +51,9 @@ public class CFGFromSource {
     public static void main(String[] args) throws CancelException, WalaException, IOException, InvalidClassFileException {
         // the jar can be built from https://github.com/Anemone95/java-sec-code
         LOG.info("Create an analysis scope representing the appJar as a J2SE application");
-        String sourceDir = "D:/Store/document/all_my_work/wala-demo/wala-target/src/main/java";
+        String path = CFGFromSource.class.getResource("/").getPath();
+        String sourceDir = path+"../../../wala-target/src/main/java";
+        System.out.println(new File(sourceDir).exists());
         AnalysisScope scope = new JavaSourceAnalysisScope();
         String[] stdlibs = WalaProperties.getJ2SEJarFiles();
         for (String s : stdlibs) {

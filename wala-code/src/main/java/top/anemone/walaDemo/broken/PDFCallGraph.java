@@ -8,7 +8,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  */
-package top.anemone.walaDemo;
+package top.anemone.walaDemo.broken;
 
 import com.ibm.wala.classLoader.Language;
 import com.ibm.wala.ipa.callgraph.AnalysisCacheImpl;
@@ -35,6 +35,7 @@ import com.ibm.wala.util.io.CommandLine;
 import com.ibm.wala.util.io.FileProvider;
 import com.ibm.wala.util.io.FileUtil;
 import com.ibm.wala.viz.DotUtil;
+import top.anemone.walaDemo.broken.PDFTypeHierarchy;
 import top.anemone.walaDemo.callGraph.CallGraphTestUtil;
 import top.anemone.walaDemo.properties.WalaExamplesProperties;
 

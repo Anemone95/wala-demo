@@ -2,7 +2,6 @@ package top.anemone.walaDemo;
 
 import com.ibm.wala.classLoader.Language;
 import com.ibm.wala.ipa.callgraph.*;
-import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
 import com.ibm.wala.ipa.callgraph.impl.Util;
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey;
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis;
@@ -42,9 +41,9 @@ import top.anemone.walaDemo.wala.AppEntryPoint;
 
 
 @SuppressWarnings("Duplicates")
-public class CFGWithoutDependency {
+public class SimpleCFGWithoutDependency {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CFGWithoutDependency.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SimpleCFGWithoutDependency.class);
 
     public static void main(String[] args) throws CancelException, WalaException, IOException, InvalidClassFileException {
         // the jar can be built from https://github.com/Anemone95/java-sec-code

@@ -72,7 +72,7 @@ import java.util.Collections;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Test;
-import top.anemone.walaDemo.PDFSlice;
+import top.anemone.walaDemo.broken.PDFSlice;
 import top.anemone.walaDemo.callGraph.CallGraphTestUtil;
 import top.anemone.walaDemo.utils.TestConstants;
 

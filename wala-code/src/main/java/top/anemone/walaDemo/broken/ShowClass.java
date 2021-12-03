@@ -1,4 +1,4 @@
-package top.anemone.walaDemo;
+package top.anemone.walaDemo.broken;
 
 import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.IMethod;
@@ -14,12 +14,9 @@ import java.io.IOException;
 
 public class ShowClass {
     public static void main(String args[]) throws IOException, ClassHierarchyException {
-        // 获得一个文件
-        File exFile = new FileProvider().getFile("src/main/resources/top.anemone.walaDemo/Java60RegressionExclusions.txt");
+        File exFile = new FileProvider().getFile("Java60RegressionExclusions.txt");
 
-        // 将分析域存到文件中
-        AnalysisScope scope =
-        AnalysisScopeReader.makeJavaBinaryAnalysisScope("zookeeper-3.3.6.jar", exFile);
+        AnalysisScope scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope("wala-target/target/wala-target-1.0-SNAPSHOT.jar", exFile);
 
         // 构建ClassHierarchy，相当与类的一个层级结构
         ClassHierarchy cha = ClassHierarchyFactory.make(scope);
